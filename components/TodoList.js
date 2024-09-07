@@ -6,23 +6,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   Keyboard,
+  FlatList,
 } from "react-native";
 import TodoItem from "./TodoItem";
 
 const styles = StyleSheet.create({
   main: {
-    display: "flex",
-    flexDirection: "column",
     flex: 1,
     padding: 20,
     backgroundColor: "#f2f2f2",
   },
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f2f2f2",
   },
-
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -56,6 +52,21 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
   },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 10,
+  },
+  filterButton: {
+    backgroundColor: "#007BFF",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  filterButtonText: {
+    color: "#fff",
+    fontSize: 14,
+  },
 });
 
 export default function TodoList() {
@@ -65,6 +76,8 @@ export default function TodoList() {
     { id: 2, text: "Meeting at School", completed: false },
   ]);
   const [text, setText] = useState("");
+  const [filter, setFilter] = useState("all");
+
   // Function to Add Task
   function addTask() {
     const newTask = { id: Date.now(), text, completed: false };
@@ -72,10 +85,12 @@ export default function TodoList() {
     setText("");
     Keyboard.dismiss();
   }
+
   // Function to Delete Task
   function deleteTask(id) {
     setTasks(tasks.filter((task) => task.id !== id));
   }
+
   // Function to Toggle Task Completion
   function toggleCompleted(id) {
     setTasks(
@@ -84,19 +99,50 @@ export default function TodoList() {
       )
     );
   }
-  // Render TodoList Component
+
+  // Filter Tasks Based on Current Filter
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === "completed") return task.completed;
+    if (filter === "non-completed") return !task.completed;
+    return true; // Show all tasks if filter is "all"
+  });
+
   return (
     <View style={styles.main}>
-      <View style={styles.container}>
-        {tasks.map((task) => (
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setFilter("all")}
+        >
+          <Text style={styles.filterButtonText}>All Tasks</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setFilter("completed")}
+        >
+          <Text style={styles.filterButtonText}>Completed</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setFilter("non-completed")}
+        >
+          <Text style={styles.filterButtonText}>Non-Completed</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        style={styles.container}
+        data={filteredTasks}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
           <TodoItem
-            key={task.id}
-            task={task}
+            task={item}
             deleteTask={deleteTask}
             toggleCompleted={toggleCompleted}
           />
-        ))}
-      </View>
+        )}
+      />
+
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.textInput}
@@ -105,7 +151,7 @@ export default function TodoList() {
           placeholder="New Task"
           placeholderTextColor="#999"
         />
-        <TouchableOpacity style={styles.addButton} onPress={addTask} on>
+        <TouchableOpacity style={styles.addButton} onPress={addTask}>
           <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
