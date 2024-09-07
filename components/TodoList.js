@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Keyboard,
   FlatList,
+  Alert,
 } from "react-native";
 import TodoItem from "./TodoItem";
 
@@ -55,7 +56,8 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 10,
+    marginVertical: 20,
+    padding:2,
   },
   filterButton: {
     backgroundColor: "#007BFF",
@@ -70,20 +72,30 @@ const styles = StyleSheet.create({
 });
 
 export default function TodoList() {
-  // State Hooks
   const [tasks, setTasks] = useState([
     { id: 1, text: "Doctor Appointment", completed: true },
     { id: 2, text: "Meeting at School", completed: false },
   ]);
   const [text, setText] = useState("");
   const [filter, setFilter] = useState("all");
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [editingText, setEditingText] = useState("");
 
   // Function to Add Task
   function addTask() {
-    const newTask = { id: Date.now(), text, completed: false };
-    setTasks([...tasks, newTask]);
-    setText("");
-    Keyboard.dismiss();
+    if (text.trim()) {
+      const newTask = { id: Date.now(), text, completed: false };
+      setTasks([...tasks, newTask]);
+      setText("");
+      Keyboard.dismiss();
+    } else {
+      Alert.alert("Alert", "Task text cannot be empty.", [
+        {
+          text: "OK",
+          onPress: () => console.log("Alert OK Pressed"),
+        },
+      ]);
+    }
   }
 
   // Function to Delete Task
@@ -100,12 +112,42 @@ export default function TodoList() {
     );
   }
 
-  // Filter Tasks Based on Current Filter
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === "completed") return task.completed;
-    if (filter === "non-completed") return !task.completed;
-    return true; // Show all tasks if filter is "all"
-  });
+  // Function to Start Editing a Task
+  function startEditingTask(id, currentText) {
+    setEditingTaskId(id);
+    setEditingText(currentText);
+  }
+
+  // Function to Save Edited Task
+  function saveEditedTask() {
+    setTasks(
+      tasks.map((task) =>
+        task.id === editingTaskId ? { ...task, text: editingText } : task
+      )
+    );
+    setEditingTaskId(null);
+    setEditingText("");
+    Keyboard.dismiss;
+  }
+
+  // Function to Cancel Editing
+  function cancelEditing() {
+    setEditingTaskId(null);
+    setEditingText("");
+    Keyboard.dismiss;
+  }
+
+  // Function to Filter Tasks
+  function getFilteredTasks() {
+    switch (filter) {
+      case "completed":
+        return tasks.filter((task) => task.completed);
+      case "non-completed":
+        return tasks.filter((task) => !task.completed);
+      default:
+        return tasks;
+    }
+  }
 
   return (
     <View style={styles.main}>
@@ -132,13 +174,19 @@ export default function TodoList() {
 
       <FlatList
         style={styles.container}
-        data={filteredTasks}
+        data={getFilteredTasks()}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TodoItem
             task={item}
             deleteTask={deleteTask}
             toggleCompleted={toggleCompleted}
+            startEditingTask={startEditingTask}
+            isEditing={item.id === editingTaskId}
+            editingText={editingText}
+            setEditingText={setEditingText}
+            saveEditedTask={saveEditedTask}
+            cancelEditing={cancelEditing}
           />
         )}
       />
