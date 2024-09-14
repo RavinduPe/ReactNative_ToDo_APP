@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   TextInput,
@@ -10,6 +11,7 @@ import {
   Alert,
 } from "react-native";
 import TodoItem from "./TodoItem";
+import { Picker } from "@react-native-picker/picker";
 
 const styles = StyleSheet.create({
   main: {
@@ -56,8 +58,7 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 20,
-    padding:2,
+    marginVertical: 10,
   },
   filterButton: {
     backgroundColor: "#007BFF",
@@ -69,41 +70,83 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
   },
+  priority: {
+    flexDirection: "row",
+    backgroundColor: "#caa9e9",
+    borderRadius: 10,
+    justifyContent: "space-between",
+    padding: 8,
+  },
+  prioritylable: {
+    width: "50%",
+    backgroundColor: "red",
+    borderRadius: 8,
+  },
+  priorityText: {
+    width: "50%",
+    zIndex: 100,
+  },
 });
 
 export default function TodoList() {
-  const [tasks, setTasks] = useState([
-    { id: 1, text: "Doctor Appointment", completed: true },
-    { id: 2, text: "Meeting at School", completed: false },
-  ]);
+  // State Hooks
+  const [tasks, setTasks] = useState([]);
   const [text, setText] = useState("");
   const [filter, setFilter] = useState("all");
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingText, setEditingText] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState("low");
+  const [editingPriority, setEditingPriority] = useState("low");
+
+  // Load tasks from AsyncStorage when the component mounts
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const jsonTasks = await AsyncStorage.getItem('@tasks');
+        const loadedTasks = jsonTasks != null ? JSON.parse(jsonTasks) : [];
+        setTasks(loadedTasks);
+      } catch (error) {
+        console.error('Error loading tasks: ', error);
+      }
+    };
+    loadTasks();
+  }, []);
+
+  // Save tasks to AsyncStorage whenever the tasks state changes
+  useEffect(() => {
+    const saveTasks = async () => {
+      try {
+        const jsonTasks = JSON.stringify(tasks);
+        await AsyncStorage.setItem('@tasks', jsonTasks);
+      } catch (error) {
+        console.error('Error saving tasks: ', error);
+      }
+    };
+    saveTasks();
+  }, [tasks]);
 
   // Function to Add Task
   function addTask() {
     if (text.trim()) {
-      const newTask = { id: Date.now(), text, completed: false };
+      const newTask = {
+        id: Date.now(),
+        text,
+        completed: false,
+        priority: newTaskPriority,
+      };
       setTasks([...tasks, newTask]);
       setText("");
+      setNewTaskPriority("low");
       Keyboard.dismiss();
     } else {
-      Alert.alert("Alert", "Task text cannot be empty.", [
-        {
-          text: "OK",
-          onPress: () => console.log("Alert OK Pressed"),
-        },
-      ]);
+      Alert.alert("Alert", "Task text cannot be empty.", [{ text: "OK" }]);
     }
   }
 
-  // Function to Delete Task
   function deleteTask(id) {
     setTasks(tasks.filter((task) => task.id !== id));
   }
 
-  // Function to Toggle Task Completion
   function toggleCompleted(id) {
     setTasks(
       tasks.map((task) =>
@@ -113,44 +156,51 @@ export default function TodoList() {
   }
 
   // Function to Start Editing a Task
-  function startEditingTask(id, currentText) {
+  function startEditingTask(id, currentText, currentPriority) {
     setEditingTaskId(id);
     setEditingText(currentText);
+    setEditingPriority(currentPriority);
   }
 
   // Function to Save Edited Task
   function saveEditedTask() {
     setTasks(
       tasks.map((task) =>
-        task.id === editingTaskId ? { ...task, text: editingText } : task
+        task.id === editingTaskId
+          ? { ...task, text: editingText, priority: editingPriority }
+          : task
       )
     );
     setEditingTaskId(null);
     setEditingText("");
-    Keyboard.dismiss;
+    setEditingPriority("low");
   }
 
   // Function to Cancel Editing
   function cancelEditing() {
     setEditingTaskId(null);
     setEditingText("");
-    Keyboard.dismiss;
+    setEditingPriority("low");
   }
 
-  // Function to Filter Tasks
-  function getFilteredTasks() {
-    switch (filter) {
-      case "completed":
-        return tasks.filter((task) => task.completed);
-      case "non-completed":
-        return tasks.filter((task) => !task.completed);
-      default:
-        return tasks;
-    }
+  // Function to Filter and Sort Tasks
+  function getSortedTasks() {
+    const filteredTasks =
+      filter === "all"
+        ? tasks
+        : tasks.filter((task) =>
+            filter === "completed" ? task.completed : !task.completed
+          );
+
+    return filteredTasks.sort((a, b) => {
+      const priorityOrder = { high: 1, medium: 2, low: 3 };
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
   }
 
   return (
     <View style={styles.main}>
+      {/* Filter Buttons */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={styles.filterButton}
@@ -172,9 +222,10 @@ export default function TodoList() {
         </TouchableOpacity>
       </View>
 
+      {/* Task List */}
       <FlatList
         style={styles.container}
-        data={getFilteredTasks()}
+        data={getSortedTasks()}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TodoItem
@@ -187,10 +238,26 @@ export default function TodoList() {
             setEditingText={setEditingText}
             saveEditedTask={saveEditedTask}
             cancelEditing={cancelEditing}
+            editingPriority={editingPriority}
+            setEditingPriority={setEditingPriority}
           />
         )}
       />
-
+      <View style={styles.priority}>
+        <View style={styles.priorityText}>
+          <Text>Select priority :</Text>
+        </View>
+        <View style={styles.prioritylable}>
+          <Picker
+            selectedValue={newTaskPriority}
+            onValueChange={(itemValue) => setNewTaskPriority(itemValue)}
+          >
+            <Picker.Item label="Low" value="low" />
+            <Picker.Item label="Medium" value="medium" />
+            <Picker.Item label="High" value="high" />
+          </Picker>
+        </View>
+      </View>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.textInput}
@@ -199,9 +266,11 @@ export default function TodoList() {
           placeholder="New Task"
           placeholderTextColor="#999"
         />
-        <TouchableOpacity style={styles.addButton} onPress={addTask}>
-          <Text style={styles.addButtonText}>Add</Text>
-        </TouchableOpacity>
+        <View>
+          <TouchableOpacity style={styles.addButton} onPress={addTask}>
+            <Text style={styles.addButtonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
