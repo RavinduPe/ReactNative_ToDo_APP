@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   TextInput,
@@ -102,11 +102,11 @@ export default function TodoList() {
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        const jsonTasks = await AsyncStorage.getItem('@tasks');
+        const jsonTasks = await AsyncStorage.getItem("@tasks");
         const loadedTasks = jsonTasks != null ? JSON.parse(jsonTasks) : [];
         setTasks(loadedTasks);
       } catch (error) {
-        console.error('Error loading tasks: ', error);
+        console.error("Error loading tasks: ", error);
       }
     };
     loadTasks();
@@ -117,9 +117,9 @@ export default function TodoList() {
     const saveTasks = async () => {
       try {
         const jsonTasks = JSON.stringify(tasks);
-        await AsyncStorage.setItem('@tasks', jsonTasks);
+        await AsyncStorage.setItem("@tasks", jsonTasks);
       } catch (error) {
-        console.error('Error saving tasks: ', error);
+        console.error("Error saving tasks: ", error);
       }
     };
     saveTasks();

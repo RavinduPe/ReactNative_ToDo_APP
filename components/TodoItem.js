@@ -30,7 +30,12 @@ export default function TodoItem({
       paddingVertical: 10,
       paddingHorizontal: 15,
       marginVertical: 5,
-      backgroundColor: task.priority === "low" ? "#f5fffa" : task.priority === "medium" ? "#93ccea" : "#fa9f9f",
+      backgroundColor:
+        task.priority === "low"
+          ? "#f5fffa"
+          : task.priority === "medium"
+          ? "#93ccea"
+          : "#fa9f9f",
       borderRadius: 8,
       borderWidth: 1,
       borderColor: "#ddd",
@@ -47,7 +52,7 @@ export default function TodoItem({
       flex: 1,
       fontSize: 16,
       color: "#333",
-      fontWeight:'700',
+      fontWeight: "700",
     },
     completed: {
       textDecorationLine: "line-through",
@@ -102,6 +107,7 @@ export default function TodoItem({
             onChangeText={setEditingText}
           />
           <Picker
+            style={{ width: "10%" }}
             selectedValue={editingPriority}
             onValueChange={setEditingPriority}
           >
